@@ -95,7 +95,7 @@ shinyServer
       # Get time series
       get_ts <- eventReactive (
         input$ts_button,
-         {  args = parse_URL()
+         {  #args = parse_URL()
             #timeSeries(get_server(), args["cov"], args["attr"], latitude=args["y"], longitude=args["x"], start=args["start"], end=args["end"])
             
             x = substr(input$location, 3, regexpr('&', input$location)-1)
