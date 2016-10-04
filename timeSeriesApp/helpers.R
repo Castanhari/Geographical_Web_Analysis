@@ -1,7 +1,6 @@
 # Note: time_series is designed to work with the data set from chronos server (http://www.dpi.inpe.br/tws/wtss). It may not 
 # work correctly with other data sets if their schema does not exactly match the schema with which this function is according
 
-library(devtools)
 library(wtss.R)
 library(zoo)
 library(lubridate)
@@ -73,4 +72,3 @@ apply_twdtw <- function(time_series)
    log_fun = logisticWeight(alpha=-0.1, beta=100) # Logistic time-weight
    twdtwApply(x=twdtw_ts, y=ts_patterns, weight.fun=log_fun, keep=TRUE)
 }
-
