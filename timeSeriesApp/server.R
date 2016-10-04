@@ -52,7 +52,7 @@ shinyServer
       # Get time series
       get_ts <- reactive (
          {  args = parse_URL()
-            timeSeries(get_server(), args["cov"], args["attr"], latitude=args['y'], longitude=args['x'], start=formatted_dates()[1], end=formatted_dates()[2])
+            timeSeries(get_server(), args["cov"], args["attrs"], latitude=args['y'], longitude=args['x'], start=formatted_dates()[1], end=formatted_dates()[2])
          }
       )
       
@@ -60,7 +60,7 @@ shinyServer
       selected_option <- reactive (
         {  time_series = get_attributes(get_ts())
             series <- switch (
-              parse_URL()["option"],
+              input$option,
                "time_series" = time_series,
                "bfast01(time_series)" = apply_bfast01(time_series),
                "bfast(time_series)" = apply_bfast(time_series),
@@ -74,7 +74,7 @@ shinyServer
       # Plot time series
       output$plot <- renderPlot (
         {  series = selected_option()
-            if(parse_URL()["option"] == "twdtw(time_series)")
+            if(input$option == "twdtw(time_series)")
             {  plot(series, type = "classification", overlap=0.5)  }
             else
             {  plot(series)  }
@@ -84,3 +84,6 @@ shinyServer
    }
 )
 
+# server=http://www.dpi.inpe.br/tws/wtss&cov=mod13q1_512&attrs=ndvi,quality&x=-53&y=-10&start=2000-02-18&end=2016-01-01
+
+# server=http://www.dpi.inpe.br/ts/wtss&cov=hotspot_monthly&attrs=measure&x=-56&y=-21&start=2000-01&end=2014-12
