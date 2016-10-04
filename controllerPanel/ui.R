@@ -29,9 +29,16 @@ shinyUI
                   multiple=TRUE
                ),
                
-               textInput
-               (  inputId="location",
-                  label="Location"
+               numericInput
+               (  inputId="latitude",
+                  label="Latitude",
+                  value=NULL
+               ),
+               
+               numericInput
+               (  inputId="longitude",
+                  label="Longitude",
+                  value=NULL
                ),
                
                uiOutput("dates_interface"),
