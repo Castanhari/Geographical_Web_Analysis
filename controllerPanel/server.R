@@ -27,7 +27,7 @@ shinyServer
          }
       )
       
-      # Load attributes, location and dates from coverage
+      # Load attributes, latitude, longitude and dates from coverage
       observeEvent (
         input$coverage,
          {  coverage = get_coverage()
@@ -36,11 +36,12 @@ shinyServer
                cov_attrs = coverage[[input$coverage]]$attributes$name
                updateSelectInput(session, "attributes", choices=cov_attrs, selected=cov_attrs[1])
                
-               #Location
+               # Latitude and Longitude
                cov_spatial = coverage[[input$coverage]]$geo_extent$spatial$extent
                cov_x = (cov_spatial$xmin + cov_spatial$xmax)/2
                cov_y = (cov_spatial$ymin + cov_spatial$ymax)/2
-               updateTextInput(session, "location", "Location", paste(paste("x=", cov_x, sep=''), paste("y=", cov_y, sep=''), sep='&'))
+               updateNumericInput(session, "latitude", "Latitude", cov_y, min=cov_spatial$ymin, max=cov_spatial$ymax, step=1)
+               updateNumericInput(session, "longitude", "Longitude", cov_x, min=cov_spatial$xmin, max=cov_spatial$xmax, step=1)
                
                # Dates
                cov_temporal = coverage[[input$coverage]]$geo_extent$temporal
@@ -66,15 +67,18 @@ shinyServer
          priority=98
       )
       
-      # Send location to a custom message handler
+      # Send latitude to a custom message handler
       observeEvent (
-        input$location,
-         {  x = substr(input$location, 3, regexpr('&', input$location)-1)
-            y = substr(input$location, regexpr('&', input$location)+3, nchar(input$location))
-            location_str = paste(paste("x=", x, sep=''), paste("y=", y, sep=''), sep='&')
-            session$sendCustomMessage("location_handler", location_str)
-         },
+        input$latitude,
+         {  session$sendCustomMessage("latitude_handler", input$latitude)  },
          priority=97
+      )
+      
+      # Send longitude to a custom message handler
+      observeEvent (
+        input$longitude,
+         {  session$sendCustomMessage("longitude_handler", input$longitude)  },
+         priority=96
       )
       
       # Format dates according they are in the coverage
@@ -99,42 +103,13 @@ shinyServer
          {  session$sendCustomMessage("start_handler", formatted_dates()[1])
             session$sendCustomMessage("end_handler", formatted_dates()[2])
          },
-         priority=96
+         priority=95
       )
       
       # Get time series
       get_ts <- eventReactive (
         input$ts_button,
-         {  x = substr(input$location, 3, regexpr('&', input$location)-1)
-            y = substr(input$location, regexpr('&', input$location)+3, nchar(input$location))
-            timeSeries(get_server(), input$coverage, input$attributes, latitude=y, longitude=x, start=formatted_dates()[1], end=formatted_dates()[2])
-         }
-      )
-      
-      # Parse URL
-      parse_URL <- function()
-      {  args = substr(session$clientData$url_search, 2, nchar(session$clientData$url_search))
-         aux = unlist(strsplit(args, '&'))
-         titles = c()
-         values = c()
-         for(i in 1:length(aux))
-         {  pair = unlist(strsplit(aux[i], '='))
-            titles[i] = pair[1]
-            values[i] = pair[2]
-         }
-         names(values) = titles
-         values
-      }
-      
-      # Update location according the click position
-      observeEvent (
-        session$clientData,
-         {  args = parse_URL()
-            if(!is.na(args['x']) && !is.na(args['y']))
-            {  updateTextInput(session, "location", "Location", paste(paste("x=", args['x'], sep=''), paste("y=", args['y'], sep=''), sep='&'))  #}
-            session$sendCustomMessage("test_handler", paste(args['x'], args['y']))}
-         },
-         priority=94
+         {  timeSeries(get_server(), input$coverage, input$attributes, latitude=input$latitude, longitude=input$longitude, start=formatted_dates()[1], end=formatted_dates()[2])  }
       )
       
       
