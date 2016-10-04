@@ -40,18 +40,20 @@ apply_bfastmonitor <- function(time_series)
 
 # Apply TWDTW
 apply_twdtw <- function(time_series)
-{  # Remove attributes not considered in TWDTW
-   keep = c("ndvi", "evi", "red", "nir", "blue", "mir")
+{  # Remove time serires attributes not presented in the first class pattern
+   keep = colnames(yearly_patterns_mt@timeseries[[1]])
    time_series = time_series[, names(time_series) %in% keep, drop=FALSE]
    
    # Put time series and signatures into the same scale
    time_series = time_series*0.0001
 
-   # Convert time series in a twdtwTimeSeries object
+   # Convert time series in a twdtwTimeSeries object if any attribute matches
+   attrs = names(time_series)
+   if(is.null(attrs))
+   {  stop("There is no attribute matching within time series with dtwSat pattern!!")  }
    twdtw_ts = twdtwTimeSeries(time_series)
    
    # Build patterns according to the time series attributes
-   attrs = names(time_series)
    patterns = lapply(
       yearly_patterns_mt@timeseries,
       function(p)
