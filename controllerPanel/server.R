@@ -13,7 +13,7 @@ shinyServer
       observeEvent (
         input$server,
          {  coverages = listCoverages(get_server())
-            updateSelectInput(session, "coverage", "Coverage", coverages, selected=coverages[1])
+            updateSelectInput(session, "coverage", "Coverage", coverages, selected=coverages[2])
             
             session$sendCustomMessage("server_handler", input$server)
          },
@@ -72,7 +72,7 @@ shinyServer
          {  x = substr(input$location, 3, regexpr('&', input$location)-1)
             y = substr(input$location, regexpr('&', input$location)+3, nchar(input$location))
             location_str = paste(paste("x=", x, sep=''), paste("y=", y, sep=''), sep='&')
-            session$sendCustomMessage("attributes_handler", location_str)
+            session$sendCustomMessage("location_handler", location_str)
          },
          priority=97
       )
@@ -102,13 +102,6 @@ shinyServer
          priority=96
       )
       
-      # Send series option to a custom message handler
-      observeEvent (
-        input$option,
-         {  session$sendCustomMessage("option_handler", input$option)  },
-         priority=95
-      )
-      
       # Get time series
       get_ts <- eventReactive (
         input$ts_button,
@@ -118,30 +111,36 @@ shinyServer
          }
       )
       
-      # Get selected option
-      selected_option <- reactive (
-        {  time_series = get_attributes(get_ts())
-            series <- switch (
-              input$option,
-               "time_series" = time_series,
-               "bfast01(time_series)" = apply_bfast01(time_series),
-               "bfast(time_series)" = apply_bfast(time_series),
-               "bfastmonitor(time_series)" = apply_bfastmonitor(time_series),
-               "twdtw(time_series)" = apply_twdtw(time_series)
-            )
-            series
+      # Parse URL
+      parse_URL <- function()
+      {  args = substr(session$clientData$url_search, 2, nchar(session$clientData$url_search))
+         aux = unlist(strsplit(args, '&'))
+         titles = c()
+         values = c()
+         for(i in 1:length(aux))
+         {  pair = unlist(strsplit(aux[i], '='))
+            titles[i] = pair[1]
+            values[i] = pair[2]
          }
+         names(values) = titles
+         values
+      }
+      
+      # Update location according the click position
+      observeEvent (
+        session$clientData,
+         {  args = parse_URL()
+            if(!is.na(args['x']) && !is.na(args['y']))
+            {  updateTextInput(session, "location", "Location", paste(paste("x=", args['x'], sep=''), paste("y=", args['y'], sep=''), sep='&'))  #}
+            session$sendCustomMessage("test_handler", paste(args['x'], args['y']))}
+         },
+         priority=94
       )
       
+      
       output$plot <- renderPlot (
-        {  series = selected_option()
-            if(input$option == "twdtw(time_series)")
-            {  plot(series, type = "classification", overlap=0.5)  }
-            else
-            {  plot(series)  }
-         }
+        {  plot(get_attributes(get_ts()))  }
       )
       
    }
 )
-
