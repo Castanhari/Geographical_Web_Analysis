@@ -26,6 +26,18 @@ Shiny.addCustomMessageHandler(
 );
 
 Shiny.addCustomMessageHandler(
+  "latitude_handler",
+   function(lat)
+   {  console.log("window.parent.InpeExt.ShinyTabPanel.prototype.setLatitude("+lat+");");  }
+);
+
+Shiny.addCustomMessageHandler(
+  "longitude_handler",
+   function(long)
+   {  console.log("window.parent.InpeExt.ShinyTabPanel.prototype.setLongitude("+long+");");  }
+);
+
+Shiny.addCustomMessageHandler(
   "start_handler",
    function(start)
    {  window.parent.InpeExt.ShinyTabPanel.prototype.setStartDate(start);  }
