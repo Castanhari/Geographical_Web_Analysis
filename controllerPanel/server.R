@@ -1,6 +1,5 @@
 library(shiny)
 library(wtss.R)
-source("helpers.R")
 
 shinyServer
 (  function(input, output, session)
@@ -107,14 +106,9 @@ shinyServer
       )
       
       # Get time series
-      get_ts <- eventReactive (
+      observeEvent (
         input$ts_button,
-         {  timeSeries(get_server(), input$coverage, input$attributes, latitude=input$latitude, longitude=input$longitude, start=formatted_dates()[1], end=formatted_dates()[2])  }
-      )
-      
-      
-      output$plot <- renderPlot (
-        {  plot(get_attributes(get_ts()))  }
+         {  session$sendCustomMessage("apply_handler", '')  }
       )
       
    }
