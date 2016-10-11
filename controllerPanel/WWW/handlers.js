@@ -20,21 +20,15 @@ Shiny.addCustomMessageHandler(
 );
 
 Shiny.addCustomMessageHandler(
-  "location_handler",
-   function(location)
-   {  window.parent.InpeExt.ShinyTabPanel.prototype.setLocation(location);  }
-);
-
-Shiny.addCustomMessageHandler(
   "latitude_handler",
    function(lat)
-   {  console.log("window.parent.InpeExt.ShinyTabPanel.prototype.setLatitude("+lat+");");  }
+   {  window.parent.InpeExt.ShinyTabPanel.prototype.setLatitude(lat);  }
 );
 
 Shiny.addCustomMessageHandler(
   "longitude_handler",
    function(long)
-   {  console.log("window.parent.InpeExt.ShinyTabPanel.prototype.setLongitude("+long+");");  }
+   {  window.parent.InpeExt.ShinyTabPanel.prototype.setLongitude(long);  }
 );
 
 Shiny.addCustomMessageHandler(
@@ -50,7 +44,7 @@ Shiny.addCustomMessageHandler(
 );
 
 Shiny.addCustomMessageHandler(
-  "test_handler",
-   function(msg)
-   {  console.log("Test message. msg: "+test);  }
+  "apply_handler",
+   function(unused)
+   {  window.parent.InpeExt.ShinyTabPanel.prototype.onApply();  }
 );
