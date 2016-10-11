@@ -46,9 +46,7 @@ shinyUI
                actionButton
                (  inputId="ts_button",
                   label="Get time series"
-               ),
-               
-               plotOutput("plot")
+               )
             )
          )
       )
