@@ -56,6 +56,23 @@ shinyServer
          }
       )
       
+      # Send time series option to a custom message handler
+      observeEvent (
+        input$option,
+         {  session$sendCustomMessage("KVP_handler", paste("&option=", input$option, sep=''))  }
+      )
+      
+      # Update time series option
+      observeEvent (
+        session$clientData,
+         {  option = parse_URL()["option"]
+            if(is.na(option))
+            {  option = "time_series"  }
+            items=c("time_series", "bfast01(time_series)", "bfast(time_series)", "bfastmonitor(time_series)", "twdtw(time_series)")
+            updateSelectInput(session, "option", "Time Series options", items, selected=option)
+         }
+      )
+      
       # Get selected option
       selected_option <- reactive (
         {  time_series = get_attributes(get_ts())
@@ -73,17 +90,15 @@ shinyServer
       
       # Plot time series
       output$plot <- renderPlot (
-        {  series = selected_option()
-            if(input$option == "twdtw(time_series)")
-            {  plot(series, type = "classification", overlap=0.5)  }
-            else
-            {  plot(series)  }
+        {  if(input$option != '')
+            {  series = selected_option()
+               if(input$option == "twdtw(time_series)")
+               {  plot(series, type = "classification", overlap=0.5)  }
+               else
+               {  plot(series)  }
+            }
          }
       )
       
    }
 )
-
-# server=http://www.dpi.inpe.br/tws/wtss&cov=mod13q1_512&attrs=ndvi,quality&x=-53&y=-10&start=2000-02-18&end=2016-01-01
-
-# server=http://www.dpi.inpe.br/ts/wtss&cov=hotspot_monthly&attrs=measure&x=-56&y=-21&start=2000-01&end=2014-12
