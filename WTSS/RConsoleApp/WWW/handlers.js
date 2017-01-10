@@ -34,8 +34,7 @@ Shiny.addCustomMessageHandler(
 function resize(editor)
 {  height = 0;
    while(height == 0)
-   //{  height = $("#left_panel").height() - $("#buttons_row").height() - $("#tab_set").height();  }
-   {  height = $("#code_panel").height() - $("#tab_set").height();  }
+   {  height = $("#left_panel").height() - $("#buttons_row").height() - $("#tab_set").height();  }
    $('#'+editor).css("height", height.toString() + "px");
    return height
 };
