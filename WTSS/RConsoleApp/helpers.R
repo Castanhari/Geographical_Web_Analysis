@@ -3,6 +3,7 @@
 
 library(zoo)
 library(lubridate)
+library(rgdal)
 library(dtwSat)
 library(bfast)
 library(wtss.R)
@@ -76,7 +77,7 @@ apply_twdtw <- function(time_series)
 }
 
 # Get and plot a TWDTW time series of the "NDVI" attribute of a fixed point
-get_fixed_ts <- function(time_series)
+get_fixed_ts <- function()
 {  server <- WTSS("http://www.dpi.inpe.br/tws/wtss")
    cov_name = listCoverages(server)[2]
    cov = describeCoverage(server, cov_name)
@@ -88,4 +89,3 @@ get_fixed_ts <- function(time_series)
    print('plot(twdtw, type="classification", overlap=0.5)')
    twdtw
 }
-
