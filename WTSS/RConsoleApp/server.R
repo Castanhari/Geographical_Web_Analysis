@@ -11,7 +11,6 @@ source("/home/raul/Desktop/Shiny/Apps/WTSS_v13/RConsoleApp/source.R")
 
 library(shiny)
 library(shinyAce)
-library(tools)
 
 tab_counter = 1
 opened_files = c(character(0))
@@ -266,8 +265,8 @@ shinyServer
             html_code = eval(parse(text=code))
             output$tab_panel = renderUI(html_code)
             for(i in 1:tab_counter)
-            {  aceAutocomplete(paste0("editor_", tab_counter))$resume()
-               session$sendCustomMessage("editor_height_handler", paste0("editor_", tab_counter))
+            {  aceAutocomplete(paste0("editor_", i))$resume()
+               session$sendCustomMessage("editor_height_handler", paste0("editor_", i))
             }
             updateTabsetPanel(session, inputId=tabset, selected=paste0("Tab ", tab_counter))
          }
