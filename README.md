@@ -1,3 +1,3 @@
 # Geographical_Web_Analysis
 
-Shiny application for Terrabrasilis
+Shiny application for TerraBrasilis
