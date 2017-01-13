@@ -1,60 +1,94 @@
 library(shiny)
 library(shinyAce)
+library(shinyStore)
+library(shinyTree)
 
 shinyUI
 (  fillPage
    (  tags$script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"),
       tags$link(rel="stylesheet", href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"),
       tags$script(src="handlers.js"),
+      initStore("store", "RConsoleStore"),
       
-      fillRow
-      (  fillCol
-         (  wellPanel
-            (  id="left_panel",
-               style="height:100%;",
+      fillCol
+      (  flex=c(NA, 1),
+
+         wellPanel
+         (  style="height:100%; margin:0px;",
+
+            fillRow
+            (  height="54px",
+               flex=c(NA, 1, NA, 1, NA, 1, NA, 1, 6, 30),
                
-               fillRow
-               (  id="buttons_row",
-                  height="74px",
-                  flex=c(2.5, 2.5, 4, 3),
-                  
-                  actionButton
-                  (  inputId="run_button",
-                     label="Run this tab (F9)"
-                  ),
-                  
-                  actionButton
-                  (  inputId="source_button",
-                     label="Import this tab (F10)"
-                  ),
-                  
-                  div
-                  (  style="height:34px; line-height:34px; padding:0px 5px; font-weight:bold; color:hsl(0, 0%, 20%); float:right;",
-                     "Upload text or .R/RData/RDS"
-                  ),
-                  
-                  fileInput
-                  (  inputId="files",
-                     label=NULL,
-                     multiple=TRUE,
-                     accept=c("text/plain", ".R", ".rds", ".RData")
-                  )
+               actionButton
+               (  inputId="run_button",
+                  label="Run (F9)"
                ),
-               
-               uiOutput("tab_panel")
+
+               div(),
+
+               actionButton
+               (  inputId="source_button",
+                  label="Source (F10)"
+               ),
+
+               div(),
+
+               actionButton
+               (  inputId="save_button",
+                  label="Save (Ctrl+S)"
+               ),
+
+               div(),
+
+               actionButton
+               (  inputId="close_button",
+                  label="Close tab"
+               ),
+
+               div(),
+
+               fileInput
+               (  inputId="files",
+                  label=NULL,
+                  multiple=TRUE,
+                  accept=c("text/plain", ".R", ".rds", ".RData")
+               ),
+
+               div()
             )
          ),
+
+         fillRow
+         (  flex=c(2, 7, 7),
          
-         fillCol
-         (  div
-            (  id="div_id",
-               style="height:100%;",
+            fillCol
+            (  wellPanel
+               (  style="height:100%;",
+                  uiOutput("tree_interface")
+               )
+            ),
             
-               pre
-               (  class="well",
-                  style="height:100%; padding-top:0px;",
+            fillCol
+            (  wellPanel
+               (  id="code_panel",
+                  style="height:100%;",
+                  
+                  uiOutput("tab_panel")
+               )
+            ),
+            
+            fillCol
+            (  div
+               (  id="div_id",
+                  style="height:100%;",
                
-                  uiOutput("result")
+                  pre
+                  (  class="well",
+                     style="height:100%; padding-top:0px;",
+                  
+                     uiOutput("result")
+                  )
                )
             )
          )
