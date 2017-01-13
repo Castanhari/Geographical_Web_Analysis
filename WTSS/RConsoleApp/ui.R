@@ -28,8 +28,8 @@ shinyUI
                div(),
 
                actionButton
-               (  inputId="import_button",
-                  label="Import (F10)"
+               (  inputId="source_button",
+                  label="Source (F10)"
                ),
 
                div(),
