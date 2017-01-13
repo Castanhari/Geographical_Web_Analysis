@@ -4,7 +4,7 @@
 # THIS NEW VERSION ACCEPTS, BESIDES FILES, DIRECTLY R CODES USING THE exprs ARGUMENT
 # FILE GOT FROM https://svn.r-project.org/R/trunk/src/library/base/R/source.R
 
-source("/home/raul/Desktop/Shiny/Apps/WTSS_v15/RConsoleApp/source.R")
+source("/home/raul/Desktop/Shiny/Apps/WTSS_v14/RConsoleApp/source.R")
 #source("/home/shiny/shinyServerApps/components/RConsoleApp/source.R")
 
 ########################################################################################################################
@@ -14,10 +14,6 @@ library(shinyAce)
 library(shinyStore)
 library(shinyTree)
 
-tab_counter = 1
-opened_files = c(character(0))
-opened_nodes = list(c(), c())#tree node names, tab in which the nodes are respectively opened
-env = environment()
 info =
 "# To run, don't write multiline commands, like:
 #    function(x, y) {
@@ -27,12 +23,18 @@ info =
 #    f = function(x, y) { print(x + y) }
 #    f(1, 2)
 # Running evaluates code line by line.
-# To import, any R code is allowed, including multiline commands.
+# To source, any R code is allowed, including multiline commands.
 "
 
 shinyServer
 (  server <- function(input, output, session)
-   {  output$tab_panel <- renderUI(tabsetPanel(id="tab_set", create_tab("editor_1", "Tab 1", info), tabPanel('+')))
+   {  tab_counter = 1
+      opened_files = c(character(0))
+      opened_nodes = c()#saved and opened node names
+      tab_names = c("Tab_1")#names of all opened tabs (saved or not)
+      env = environment()
+
+      output$tab_panel <- renderUI(tabsetPanel(id="tab_set", create_tab("editor_1", "Tab_1", info), tabPanel('+')))
       aceAutocomplete("editor_1")$resume()#enable code auto-complete
       outputOptions(output,"tab_panel", suspendWhenHidden=FALSE)
       output$result <- renderUI("Results go here...")
@@ -43,8 +45,8 @@ shinyServer
       # Monitor F9 key
       observeEvent(input$key_F9, run_code())
       
-      # Monitor "Import" button
-      observeEvent(input$import_button, import_tab())
+      # Monitor "Source" button
+      observeEvent(input$source_button, import_tab())
       
       # Monitor F10 key
       observeEvent(input$key_F10, import_tab())
@@ -58,96 +60,14 @@ shinyServer
       # Monitor "Close" button
       observeEvent(input$close_button, close_tab())
 
-      save_or_update <- function()
-      {  tab_index = grep(input$tab_set, opened_nodes[[2]])
-         if(length(tab_index) == 0)
-         {  session$sendCustomMessage("save_handler", '')  }
-         else
-         {  node = opened_nodes[[1]][tab_index]
-            #content = input[[paste0("editor_", substr(input$tab_set, nchar(input$tab_set), nchar(input$tab_set)))]]
-            content = input[[paste0("editor_", substr(input$tab_set, 5, nchar(input$tab_set)))]]
-            updateStore(session, name=node, value=isolate(content))
-         }
-      }
-
-      # Monitor the save_handler response
-      observeEvent(
-         input$saved_name,
-         #save_node(input$saved_name[1], input[[paste0("editor_", substr(input$tab_set, nchar(input$tab_set), nchar(input$tab_set)))]])
-         save_node(input$saved_name[1], input[[paste0("editor_", substr(input$tab_set, 5, nchar(input$tab_set)))]])
-      )
-      
-      # Save a new tree node
-      save_node <- function(node_name, content)
-      {  if(length(node_name) > 0)
-         {  index = names(input$store) %in% node_name
-            if(length(input$store[index]) == 0)
-            {  #editor_number = substr(input$tab_set, nchar(input$tab_set), nchar(input$tab_set))
-               editor_number = substr(input$tab_set, 5, nchar(input$tab_set))
-               updateStore(session, name=node_name, value=isolate(content))
-               opened_nodes[[1]] <<- append(opened_nodes[[1]], node_name)
-               opened_nodes[[2]] <<- append(opened_nodes[[2]], paste0("Tab ", editor_number))
-            }
-            else
-            {  session$sendCustomMessage("save_handler", "Name already used; please select another one.")  }
-         }
-      }
-      
-      # Show the tree nodes content
-      observeEvent(
-         input$data_tree,
-         {  node = unlist(get_selected(input$data_tree))
-            index = names(input$store) %in% node
-            if(length(input$store[index]) > 0)
-            {  repeated_node = FALSE
-               for(i in opened_nodes[[1]])
-               {  if(grepl(node, i))
-                  {  repeated_node = TRUE
-                     break
-                  }
-               }
-               if(!repeated_node)
-               {  opened_nodes[[1]] <<- append(opened_nodes[[1]], node)
-                  opened_nodes[[2]] <<- append(opened_nodes[[2]], paste0("Tab ", tab_counter+1))
-                  add_tabs("tab_set", input$store[index])
-               }
-               else
-               {  tab_name = opened_nodes[[2]][grep(node, opened_nodes[[1]])]
-                  updateTabsetPanel(session, inputId="tab_set", selected=tab_name)
-               }
-            }
-         }
-      )
-      
-      # Update the data tree when a node is updated in the store
-      observeEvent(
-         input$store,
-         {  if(length(input$store) > 0)
-            {  temp_list = list()
-               for(i in 1:length(input$store))
-               {  temp_list = append(temp_list, list(structure(isolate(input$store[[i]]), sticon="file")))  }
-               names(temp_list) = names(input$store)
-               output$tree_interface <- renderUI(
-                  shinyTree(
-                     outputId="data_tree",
-                     search=TRUE,
-                     dragAndDrop=TRUE
-                  )
-               )
-               output$data_tree <- renderTree(temp_list)
-            }
-            else
-            {  output$tree_interface <- renderUI("There is no saved file")  }
-         }
-      )
-
       # Run the code written in the text area and show its results
       run_code <- reactive (
          {  session$sendCustomMessage("close_handler", '')
             textual_result = ''
             last_plot = c('', '')#plot AND points commands (one string), id. of the HTML popup that contains the plot
-            #editor = paste0("editor_", substr(input$tab_set, nchar(input$tab_set), nchar(input$tab_set)))
-            editor = paste0("editor_", substr(input$tab_set, 5, nchar(input$tab_set)))
+            editor = input$tab_set
+            if(!(input$tab_set %in% opened_nodes))
+            {  editor = paste0("editor_", substr(input$tab_set, 5, nchar(input$tab_set))) }
             line = unlist(strsplit(input[[editor]], ";|\n"))
             if(length(line) > 0)
             {  withProgress(
@@ -241,10 +161,11 @@ shinyServer
       # Import tab content and show its objects
       import_tab <- function()
       {  withProgress(
-            message="Importing", value=1,
+            message="Loading objects", value=1,
             {  incProgress(0, detail="please wait...")
-               #editor = paste0("editor_", substr(input$tab_set, nchar(input$tab_set), nchar(input$tab_set)))
-               editor = paste0("editor_", substr(input$tab_set, 5, nchar(input$tab_set)))
+               editor = input$tab_set
+               if(!(input$tab_set %in% opened_nodes))
+               {  editor = paste0("editor_", substr(input$tab_set, 5, nchar(input$tab_set))) }
                content = import(input[[editor]])
                textual_result = paste0('source(exprs=parse(text=&lt;tab_code&gt;))\n', content, '\n')
                output$result <- renderUI(HTML(textual_result))
@@ -295,7 +216,7 @@ shinyServer
          input$files,
          {  if(!is.null(input$files))
             {  withProgress(
-                  message="Importing", value=1,
+                  message="Loading objects", value=1,
                   {  incProgress(0, detail="please wait...")
                      textual_result = ''
                      code_list = c(character(0))
@@ -342,6 +263,84 @@ shinyServer
          }
       )
       
+      # Show the tree nodes content
+      observeEvent(
+         input$data_tree,
+         {  node_name = unlist(get_selected(input$data_tree))
+            if(!is.null(node_name))
+            {  if(!(node_name %in% opened_nodes))
+               {  index = match(node_name, names(input$store))
+                  add_tabs("tab_set", input$store[index], c(node_name))
+               }               
+               else
+               {  updateTabsetPanel(session, inputId="tab_set", selected=node_name)  }
+            }
+         }
+      )
+      
+      # Request a tab saving or update (if already saved) the content of a tab
+      save_or_update <- function()
+      {  tab_index = match(input$tab_set, opened_nodes)
+         if(is.na(tab_index))#tab not saved yet
+         {  session$sendCustomMessage("save_handler", '')  }
+         else
+         {  updateStore(session, name=opened_nodes[tab_index], value=isolate(input[[input$tab_set]]))  }
+      }
+
+      # Monitor the save_handler response; effectively save a new tree node
+      observeEvent(
+         input$saved_name,
+         {  if(input$saved_name[1] != '')
+            {  node_name = gsub("([^a-zA-Z0-9_-])", "", iconv(input$saved_name[1], "UTF-8", "ASCII", ''))
+               if(!(node_name %in% names(input$store)))
+               {  editor_number = substr(input$tab_set, 5, nchar(input$tab_set))
+                  content = input[[paste0("editor_", substr(input$tab_set, 5, nchar(input$tab_set)))]]
+                  updateStore(session, name=node_name, value=isolate(content))
+                  update_tab(node_name)
+               }
+               else
+               {  session$sendCustomMessage("save_handler", "Name already used; please select another one.")  }
+            }
+            else
+            {  session$sendCustomMessage("save_handler", "Please enter a name not empty.")  }
+         }
+      )
+
+      # Update the name (and corresponding editor) of a tab (rebuild all tabs)
+      update_tab <- function(node_name)
+      {  code = ''
+         for(i in 1:tab_counter)
+         {  if(tab_names[i] %in% opened_nodes)
+            {  code = paste0(code, "create_tab('", tab_names[i], "', '", tab_names[i], "', input[['", tab_names[i], "']]), ")  }
+            else
+            {  editor_number = substr(tab_names[i], 5, nchar(tab_names[i]))
+               if(tab_names[i] == input$tab_set)
+               {  code = paste0(code, "create_tab('", node_name, "', '", node_name, "', input$editor_", editor_number, "), ")
+                  opened_nodes <<- append(opened_nodes, node_name)
+                  tab_names[i] <<- node_name
+               }
+               else
+               {  code = paste0(code, "create_tab('editor_", editor_number, "', '", tab_names[i], "', input$editor_", editor_number, "), ")  }
+            }
+         }
+         code = paste0("tabsetPanel(id='tab_set', ", code, "tabPanel('+'))")
+         html_code = eval(parse(text=code))
+         output$tab_panel = renderUI(html_code)
+         for(i in 1:tab_counter)
+         {  if(tab_names[i] %in% opened_nodes)
+            {  aceAutocomplete(tab_names[i])$resume()
+               session$sendCustomMessage("editor_height_handler", tab_names[i])               
+            }
+            else
+            {  editor_number = substr(tab_names[i], 5, nchar(tab_names[i]))
+               aceAutocomplete(paste0("editor_", editor_number))$resume()
+               session$sendCustomMessage("editor_height_handler", paste0("editor_", editor_number))
+            }
+         }
+         tab_index = match(node_name, tab_names)
+         updateTabsetPanel(session, inputId="tab_set", selected=node_name)
+      }
+
       # Monitor '+' tab
       observeEvent (
         input$tab_set,
@@ -351,27 +350,106 @@ shinyServer
       )
       
       # Add new tabs to tabset (rebuild all tabs)
-      add_tabs <- function(tabset, contents_list=c(''))
+      add_tabs <- function(tabset, contents_list=c(''), tab_titles=c(''))
       {  if(length(contents_list) > 0)
          {  code = ''
             for(i in 1:tab_counter)
-            {  code = paste0(code, "create_tab('editor_", i, "', 'Tab ", i, "', input$editor_", i, "), ")  }         
+            {  if(tab_names[i] %in% opened_nodes)
+               {  code = paste0(code, "create_tab('", tab_names[i], "', '", tab_names[i], "', input[['", tab_names[i], "']]), ")  }
+               else
+               {  editor_number = substr(tab_names[i], 5, nchar(tab_names[i]))
+                  code = paste0(code, "create_tab('editor_", editor_number, "', '", tab_names[i], "', input$editor_", editor_number, "), ")
+               }
+            }
             for(i in 1:length(contents_list))
-            {  ii = tab_counter + i
-               content = ''
+            {  content = ''
                if(contents_list[i] != '')
                {  content = paste0(", contents_list[", i, "]")  }
-               code = paste0(code, "create_tab('editor_", ii, "', 'Tab ", ii, "'", content, "), ")
+               if(length(tab_titles) >= i && tab_titles[i] != '')
+               {  node_name = gsub("([^a-zA-Z0-9_-])", "", iconv(tab_titles[i], "UTF-8", "ASCII", ''))
+                  code = paste0(code, "create_tab('", node_name, "', '", node_name, "'", content, "), ")
+                  tab_names <<- append(tab_names, node_name)
+                  if(node_name %in% names(input$store))
+                  {  opened_nodes <<- append(opened_nodes, node_name)  }
+               }
+               else
+               {  tab_index = length(tab_names)
+                  while((tab_index > 0) && (tab_names[tab_index] %in% opened_nodes))
+                  {  tab_index = tab_index - 1  }
+                  if(tab_index == 0)
+                  {  code = paste0(code, "create_tab('editor_1', 'Tab_1'", content, "), ")
+                     tab_names <<- append(tab_names, "Tab_1")
+                  }
+                  else
+                  {  tab_index = as.numeric(substr(tab_names[tab_index], 5, nchar(tab_names[tab_index]))) + i
+                     code = paste0(code, "create_tab('editor_", tab_index, "', 'Tab_", tab_index, "'", content, "), ")
+                     tab_names <<- append(tab_names, paste0("Tab_", tab_index))
+                  }
+               }
             }
             tab_counter <<- tab_counter + length(contents_list)
             code = paste0("tabsetPanel(id='", tabset, "', ", code, "tabPanel('+'))")
             html_code = eval(parse(text=code))
             output$tab_panel = renderUI(html_code)
             for(i in 1:tab_counter)
-            {  aceAutocomplete(paste0("editor_", i))$resume()
-               session$sendCustomMessage("editor_height_handler", paste0("editor_", i))
+            {  if(tab_names[i] %in% opened_nodes)
+               {  aceAutocomplete(tab_names[i])$resume()
+                  session$sendCustomMessage("editor_height_handler", tab_names[i])
+                  
+               }
+               else
+               {  editor_number = substr(tab_names[i], 5, nchar(tab_names[i]))
+                  aceAutocomplete(paste0("editor_", editor_number))$resume()
+                  session$sendCustomMessage("editor_height_handler", paste0("editor_", editor_number))
+               }
             }
-            updateTabsetPanel(session, inputId=tabset, selected=paste0("Tab ", tab_counter))
+            updateTabsetPanel(session, inputId=tabset, selected=tab_names[tab_counter])
+         }
+      }
+      
+      # Close a tab (rebuild all tabs)
+      close_tab <- function(tab_id=input$tab_set, tabset="tab_set")
+      {  tab_index = match(tab_id, tab_names)
+         if(!is.na(tab_index))
+         {  code = ''
+            if(tab_counter == 1)
+            {  code = "create_tab('editor_1', 'Tab_1'), "
+               tab_names <<- c("Tab_1")
+            }
+            else
+            {  for(i in 1:tab_counter)
+               {  if(i != tab_index)
+                  {  if(tab_names[i] %in% opened_nodes)
+                     {  code = paste0(code, "create_tab('", tab_names[i], "', '", tab_names[i], "', input[['", tab_names[i], "']]), ")  }
+                     else
+                     {  editor_number = substr(tab_names[i], 5, nchar(tab_names[i]))
+                        code = paste0(code, "create_tab('editor_", editor_number, "', '", tab_names[i], "', input$editor_", editor_number, "), ")
+                     }
+                  }
+               }
+               tab_names <<- tab_names[-tab_index]
+               if(tab_index == tab_counter)
+               {  tab_index = tab_counter - 1  }
+               tab_counter <<- tab_counter - 1
+            }
+            node_index = match(tab_id, opened_nodes)
+            if(!is.na(node_index))
+            {  opened_nodes <<- opened_nodes[-node_index]  }
+            code = paste0("tabsetPanel(id='", tabset, "', ", code, "tabPanel('+'))")
+            html_code = eval(parse(text=code))
+            output$tab_panel = renderUI(html_code)
+            for(i in 1:tab_counter)
+            {  if(tab_names[i] %in% opened_nodes)
+               {  aceAutocomplete(tab_names[i])$resume()
+                  session$sendCustomMessage("editor_height_handler", tab_names[i])
+               }
+               else
+               {  editor_number = substr(tab_names[i], 5, nchar(tab_names[i]))
+                  aceAutocomplete(paste0("editor_", editor_number))$resume()
+                  session$sendCustomMessage("editor_height_handler", paste0("editor_", editor_number))
+               }
+            }
+            updateTabsetPanel(session, inputId=tabset, selected=tab_names[tab_index])#tab next to the closed one
          }
       }
       
@@ -392,46 +470,48 @@ shinyServer
          )
       }
       
-      # Close a tab
-      close_tab <- function(tab_id=input$tab_set, tabset="tab_set")
-      {  #tab_index = substr(tab_id, nchar(tab_id), nchar(tab_id))
-         tab_index = as.numeric(substr(tab_id, 5, nchar(tab_id)))
-         if(tab_index <= tab_counter)
-         {  code = ''
-            if(tab_counter == 1)
-            {  code = "create_tab('editor_1', 'Tab 1'), "  }
+      # Update the data tree when a node is updated in the store
+      observeEvent(
+         input$store,
+         {  if(length(input$store) > 0)
+            {  temp_list = list()
+               for(i in 1:length(input$store))
+               {  temp_list = append(temp_list, list(structure(isolate(input$store[[i]]), sticon="file")))  }
+               names(temp_list) = names(input$store)
+               output$tree_interface <- renderUI(
+                  shinyTree(
+                     outputId="data_tree",
+                     search=TRUE,
+                     dragAndDrop=TRUE
+                  )
+               )
+               output$data_tree <- renderTree(temp_list)
+            }
             else
-            {  for(i in 1:tab_counter)
-               {  if(i < tab_index)
-                  {  code = paste0(code, "create_tab('editor_", i, "', 'Tab ", i, "', input$editor_", i, "), ")  }
-                  else
-                  {  if(i > tab_index)
-                     {  code = paste0(code, "create_tab('editor_", i-1, "', 'Tab ", i-1, "', input$editor_", i, "), ")  }
-                  }
-               }
-               if(tab_index == tab_counter)
-               {  tab_index = tab_counter - 1  }
-               tab_counter <<- tab_counter - 1
-            }
-            code = paste0("tabsetPanel(id='", tabset, "', ", code, "tabPanel('+'))")
-            html_code = eval(parse(text=code))
-            output$tab_panel = renderUI(html_code)
-            for(i in 1:tab_counter)
-            {  aceAutocomplete(paste0("editor_", i))$resume()
-               session$sendCustomMessage("editor_height_handler", paste0("editor_", i))
-            }
-            updateTabsetPanel(session, inputId=tabset, selected=paste0("Tab ", tab_index))
+            {  output$tree_interface <- renderUI("There is no saved file")  }
          }
-      }
-      
+      )
+
       session$onSessionEnded(
          function()
          {  tab_counter <<- 1
             opened_files <<- c(character(0))
-            opened_nodes <<- list(c(), c())
+            opened_nodes <<- c()
+            tab_names <<- c()
             rm(list=ls())
          }
       )
-      
+
    }
 )
+
+# IMPLEMENTAR:
+#
+#    QUANDO TENTAR SE SALVAR UMA ABA COM UM NOME COM CARACTERES ESPECIAIS MOSTRAR UMA CAIXA DE DIÁLOGO AVISANDO QUE APENAS LETRAS, NÚMEROS, "_" E "-" SÃO PERMITIDOS
+#    AO INVÉS DE ELIMINAR OS CARACTERES ESPECIAIS AUTOMATICAMENTE DO NOME DADO E SALVAR COM O NOME RESULTANTE
+#    
+#    MOSTRAR UMA CAIXA DE DIÁLOGO PERGUNTANDO SE DESEJA-SE SALVAR UMA ABA NÃO SALVA E NÃO VAZIA AO FECHÁ-LA, ESTANDO ESSA ABA JÃ REGISTRADA NA ÁRVORE (DESATUALIZADA) OU NÃO
+#
+#    REMOVER SELEÇÃO DO NÓ DA ÁRVORE QUANDO A ABA CORRESPONDENTE FOR FECHADA E QUANDO SE TROCAR DE ABA (PARA SE PORDER SELECIONÁ-LA NOVAMENTE DEPOIS)
+#
+#    ATUALIZAR O NOME DA ABA ABERTA QUANDO SE FAZ O UPLOAD DE UM ARQUIVO PARA O NOME DO ARQUIVO
