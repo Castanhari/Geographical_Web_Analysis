@@ -1,0 +1,24 @@
+To deploy an application on TerraBrasilis:
+
+- Copy the application folder to the /home/shiny/shinyServerApps/components folder from the
+	remote server shiny.dpi.inpe.br with the 'shiny' user (ask the password)
+
+- Verify if the R processor of the above server has the libraries used by the application
+
+
+For the RConsoleApp application
+
+in the "server.R" file:
+- comment the first 'source' command ("/home/raul/.../source.R")
+- uncomment the second 'source' command ("/home/shiny/.../source.R")
+- uncomment the URL assignment (URL = paste0(session$clientData$url_protocol,...)
+(see the file shiny@shiny.dpi.inpe.br/home/shiny/shinyServerApps/components/RConsoleApp/server.R for example)
+
+in the WWW/handlers.js file:
+- comment the uncommented code inside the 'plot_handler' function
+	from 'new_div = document.createElement("div")' until '{  $('#'+plot[2]).remove();  });'
+- uncomment the last two commented code lines inside the 'plot_handler' function
+- comment the single uncommented code line inside the 'removal_handler' function
+- uncomment the single commented code line inside the 'removal_handler' function
+- uncomment the single commented code line inside the 'close_handler' function
+(see the file shiny@shiny.dpi.inpe.br/home/shiny/shinyServerApps/components/RConsoleApp/WWW/handlers.js for example)
