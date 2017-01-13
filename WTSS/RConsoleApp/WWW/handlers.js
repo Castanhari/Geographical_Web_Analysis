@@ -34,7 +34,8 @@ Shiny.addCustomMessageHandler(
 function resize(editor)
 {  height = 0;
    while(height == 0)
-   {  height = $("#left_panel").height() - $("#buttons_row").height() - $("#tab_set").height();  }
+   //{  height = $("#left_panel").height() - $("#buttons_row").height() - $("#tab_set").height();  }
+   {  height = $("#code_panel").height() - $("#tab_set").height();  }
    $('#'+editor).css("height", height.toString() + "px");
    return height
 };
@@ -49,3 +50,48 @@ Shiny.addCustomMessageHandler(
 );
 
 Shiny.addCustomMessageHandler("log", function(arg){console.log(arg);});
+
+Shiny.addCustomMessageHandler(
+   "save_handler",
+   function(message)
+   {  save_form = document.createElement("form")
+      save_form.id = "save";
+      save_form.title = "Save tab content";
+      if(message != '')
+      {
+      heading = document.createElement("h4");
+      heading.innerHTML = message;
+      save_form.appendChild(heading);
+      }
+      field_label = document.createElement("label");
+      field_label.innerHTML = "Name&nbsp;";
+      save_form.appendChild(field_label);
+      field_input = document.createElement("input");
+      field_input.setAttribute("type", "text");
+      save_form.appendChild(field_input);
+      document.getElementById("div_id").appendChild(save_form);      
+      $("#save").dialog(
+         {  height:"auto",
+            width:"auto",
+            modal:true,
+            buttons:
+            {  Save: function()
+               {  Shiny.onInputChange("saved_name", [field_input.value, Math.random()]);
+                  console.log(field_input.value)
+                  $("#save").dialog("close");
+                  $("#save").remove();
+               },
+               Cancel: function()
+               {  $("#save").dialog("close");
+                  $("#save").remove();
+               }
+            }
+         }
+      );
+      $("#save").on(
+         "dialogclose",
+         function(event)
+         {  $("#save").remove();  }
+      );
+   }
+);
