@@ -7,6 +7,11 @@ library(lubridate)
 library(bfast)
 library(dtwSat)
 
+#load("/home/osboxes/Desktop/Shiny/Apps/WTSS_v17/timeSeriesApp/yearly_12patterns_MT_Cerrado.RData")
+load("/home/osboxes/Desktop/Shiny/Apps/WTSS_v17/timeSeriesApp/yearly_11_ndvi_evi_patterns_MT_Cerrado.RData")
+#load("/home/shiny/shinyServerApps/components/timeSeriesApp/yearly_12patterns_MT_Cerrado.RData")
+#load("/home/shiny/shinyServerApps/components/timeSeriesApp/yearly_11_ndvi_evi_patterns_MT_Cerrado.RData")
+
 # Get time series attributes
 get_attributes <- function(time_series)
 {  time_series[[names(time_series)]]$attributes  }
@@ -40,8 +45,11 @@ apply_bfastmonitor <- function(time_series)
 
 # Apply TWDTW
 apply_twdtw <- function(time_series)
-{  # Remove time serires attributes not presented in the first class pattern
-   keep = colnames(yearly_patterns_mt@timeseries[[1]])
+{  #signatures = yearly_patterns_mt
+   signatures = yearly_patterns_MT_Cerrado
+   
+   # Remove time serires attributes not presented in the first class pattern
+   keep = colnames(signatures@timeseries[[1]])
    time_series = time_series[, names(time_series) %in% keep, drop=FALSE]
    
    # Put time series and signatures into the same scale
@@ -55,7 +63,7 @@ apply_twdtw <- function(time_series)
    
    # Build patterns according to the time series attributes
    patterns = lapply(
-      yearly_patterns_mt@timeseries,
+      signatures@timeseries,
       function(p)
       {  object_zoo = vector("list")
          dates = index(p)
@@ -65,7 +73,7 @@ apply_twdtw <- function(time_series)
          as.zoo(as.data.frame(object_zoo), dates)
       }
    )
-   names(patterns) = names(yearly_patterns_mt@timeseries)
+   names(patterns) = names(signatures@timeseries)
    
    # Convert patterns in a twdtwTimeSeries object
    ts_patterns = twdtwTimeSeries(patterns)
@@ -74,4 +82,3 @@ apply_twdtw <- function(time_series)
    log_fun = logisticWeight(alpha=-0.1, beta=100) # Logistic time-weight
    twdtwApply(x=twdtw_ts, y=ts_patterns, weight.fun=log_fun, keep=TRUE)
 }
-
