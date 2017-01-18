@@ -20,56 +20,72 @@ shinyServer
       }
       
       # Get server
-      get_server <- reactive (
-        {  WTSS(parse_URL()["server"])  }
-      )
+      get_server <- reactive(WTSS("http://www.dpi.inpe.br/tws/wtss"))
       
       # Get coverage
-      get_coverage <- reactive (
-        {  cov = parse_URL()["cov"]
-            if(nchar(cov) > 0)
-            {  describeCoverage(get_server(), cov)  }
-         }
-      )
+      get_coverage <- reactive(describeCoverage(get_server(), "mod13q1_512"))
       
       # Format dates according they are in the coverage
-      formatted_dates <- reactive (
-        {  args = parse_URL()
-            dates = c(args["start"], args["end"])
+      formatted_dates <- reactive(
+         {  dates = c(as.character(input$dates[1]), as.character(input$dates[2]))
             coverage = get_coverage()
             if(length(coverage) > 0)
-            {  cov = get(args["cov"], coverage)
-               if(class(cov) != "try-error")
-               {  cov_temporal = cov$geo_extent$temporal
-                  dates[1] = substr(args["start"], 1, nchar(cov_temporal$start))
-                  dates[2] = substr(args["end"], 1, nchar(cov_temporal$end))
-               }
+            {  cov_temporal = coverage[[names(coverage)]]$geo_extent$temporal
+               dates[1] = substr(input$dates[1], 1, nchar(cov_temporal$start))
+               dates[2] = substr(input$dates[2], 1, nchar(cov_temporal$end))
             }
             dates
          }
       )
       
       # Get time series
-      get_ts <- reactive (
+      get_ts <- reactive(
          {  args = parse_URL()
-            timeSeries(get_server(), args["cov"], args["attrs"], latitude=args['y'], longitude=args['x'], start=formatted_dates()[1], end=formatted_dates()[2])
+            dates = formatted_dates()
+            timeSeries(get_server(), names(get_coverage()), input$attributes, lat=args['y'], long=args['x'], start=dates[1], end=dates[2])
          }
       )
+      
+      # Load attributes and dates from coverage
+      load_attrs_dates <- reactive(
+         {  coverage = get_coverage()
+            if(length(coverage) > 0)
+            {  cov_name = names(coverage)
+               
+               # Attributes
+               cov_attrs = coverage[[cov_name]]$attributes$name
+               updateSelectInput(session, "attributes", choices=cov_attrs, selected=cov_attrs[1])
+               
+               # Dates
+               cov_temporal = coverage[[cov_name]]$geo_extent$temporal
+               output$dates_interface <- renderUI(
+                  {  if(nchar(cov_temporal$start) == 10)
+                     {  dateRangeInput("dates", "Date range", format="yyyy-mm-dd")  }
+                     else
+                     {  dateRangeInput("dates", "Date range", format="yyyy-mm")  }
+                  }
+               )
+               updateDateRangeInput(session, "dates", "Date range", cov_temporal$start, cov_temporal$end, min=cov_temporal$start, max=cov_temporal$end)
+            }
+         }
+      )
+      
+      # Trigger the attributes and dates load at the application launch
+      observeEvent(get_server(), load_attrs_dates())
       
       # Update time series option
       observeEvent (
         session$clientData,
          {  option = parse_URL()["option"]
             if(is.na(option))
-            {  option = "time_series"  }
+            {  option = "twdtw(time_series)"  }
             items=c("time_series", "bfast01(time_series)", "bfast(time_series)", "bfastmonitor(time_series)", "twdtw(time_series)")
-            updateSelectInput(session, "option", "Time Series options", items, selected=option)
+            updateSelectInput(session, "option", "Filter", items, selected=option)
          }
       )
       
       # Send time series option to a custom message handler, get a time series and show the result
-      observeEvent (
-        input$option,
+      observe(
          {  session$sendCustomMessage("KVP_handler", paste("&option=", input$option, sep=''))
             
             if(input$option != '')
@@ -80,7 +96,6 @@ shinyServer
                if(is.null(time_series))
                {  output$result_interface <- renderUI(textOutput("result"))
                   output$result <- renderText({"There is no data for the selected parameters. Please, try to get a time series with other parameters."})
-                  print("nao deu")
                }
                else
                {  series <- switch (
@@ -94,12 +109,15 @@ shinyServer
                   output$result_interface <- renderUI(plotOutput("result"))
                   output$result <- renderPlot (
                      {  if(input$option == "twdtw(time_series)")
+                        #{  plot(series, type = "alignments")  }
                         {  plot(series, type = "classification", overlap=0.5)  }
                         else
-                        {  plot(series)  }
+                        {  plot(series,
+                              main=paste0("Pixel Center Coordinates Time-Series (lat ", get_ts()[[1]]$center_coordinate$latitude,
+                              ", long ", get_ts()[[1]]$center_coordinate$longitude, ")"))
+                        }
                      }
                   )
-                  print(paste("input$option", input$option))
                }
             }
          }
@@ -107,6 +125,3 @@ shinyServer
       
    }
 )
-
-# server=http://www.dpi.inpe.br/tws/wtss&cov=mod13q1_512&attrs=ndvi&y=-10&x=-54&start=2000-02-18&end=2016-01-01&option=time_series
-
