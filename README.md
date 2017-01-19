@@ -1,3 +1,3 @@
-# Geographical_Web_Analysis
+# Geographical Web Analysis
 
-Shiny application for TerraBrasilis
+Shiny application for TerraBrasilis (instructions in the home directory of TerraBrasilis server).
